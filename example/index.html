@@ -1,0 +1,150 @@
+<!DocType html>
+<html lang=en>
+<head>
+  <meta charset=utf-8>
+  <title>AST Abuse</title>
+  <link href="example.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+<div class="container">
+  <h1>abstract syntax trees</h1>
+
+  <h3 class="subheader">leaf them alone!</h3>
+</div>
+
+<script src="js/jquery.js"></script>
+<script>
+  // Immediately request the data for our style
+  $.getJSON('/example.css.json', function (data) {
+
+    // Create a quick container
+    var inputHolder = $('<div id="styler"></div>');
+
+    // Generate some html
+    var allhtml = $.map(data, function( value, key ) {
+      var type = '';
+
+      // Some crappy heuristic of more usable input types
+      // based on the name of the variable
+      if (~key.indexOf('color')) {
+        type = 'type="color" value="#FFFFFF"';
+      }
+      if (~key.indexOf('width') || ~key.indexOf('height')) {
+        type = 'type="range" min="0" max="1000"'
+      }
+      if (~key.indexOf('radius')) {
+        type = 'type="range" min="0" max="100"'
+      }
+
+      // The html that is return for each variable, but with the special types placed in
+      return '<input disabled value="'+Object.keys(value).length+'" style="width:20px;"/>'+
+        '<input class="varname" value="'+key+'" disabled />'+
+        '<input class="varvalue" data-varname="'+key+'" '+type+'placeholder="value"><br />';
+    }).join("\n");
+
+    // Inject our HTML, then position the container at the top right
+    inputHolder.html(allhtml).css({
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      width: '300px'
+    });
+
+    // Inject our container
+    $(document.body).append(inputHolder);
+
+    // Inside of our container, watch changes to inputs
+    inputHolder.find('.varvalue').change(function() {
+      var $this = $(this);
+      var varname = $this.data('varname');
+      var value = $this.val();
+
+      // If we have a special type that does pixels, add the px to the number
+      if (~varname.indexOf('width') || ~varname.indexOf('height') || ~varname.indexOf('radius')) {
+        value += 'px';
+      }
+
+      // Inject a new style element for that variable.
+      // Use 'varname' as our feature name so each input gets its own
+      // style element (best for reflows and fast updates)
+      injectStyle(data, varname, [varname], value);
+    });
+  });
+
+  var featureCache = {};
+  var styleNodeCache = {};
+
+  // A Function to inject styles into a page into a new style element
+  // and then update them quickly
+  function injectStyle (styleData, feature, variables, value) {
+    // Validate
+    if (!feature || !variables || !variables.length || !value) {
+      throw new Error('Invalid input.');
+    }
+
+    var key = feature;
+    var ruleSlctr = {};
+    var rel = [];
+    var styleTag;
+
+    // Use an old style element if we've already dealt with this
+    // key.
+    if (featureCache[key]) {
+      ruleSlctr = featureCache[key];
+      styleTag = styleNodeCache[key];
+    }
+    else {
+      // For each variable that we're updating
+      $.each(variables, function (i, val) {
+        if (val && styleData[val]) {
+          // Get each of the rules that are being updated,
+          // and add them to the rules for this variable
+          $.each(styleData[val], function (j, rule) {
+            rel.push(rule);
+          });
+        }
+        else if (window.console && console.log) {
+          console.log('no mapping for ' + feature, variables, value);
+        }
+      });
+
+      // Match the rules up with the selectors
+      $.each(rel, function (i, s) {
+        ruleSlctr[s.selector] = ruleSlctr[s.selector] || [];
+        ruleSlctr[s.selector].push(s.rule);
+      });
+
+      // Save this for use next time (fast updates)
+      featureCache[key] = ruleSlctr;
+
+      // Create a node once
+      styleTag = document.createElement('style');
+      styleTag.type = "text/css";
+
+      // Mark these so we know where they came from in the future
+      styleTag.setAttribute('data-css-injected', 'true');
+      document.body.appendChild(styleTag);
+
+      // Some boring stuff for compatible style tag injection
+      styleTag.appendChild( document.createTextNode('') );
+      styleNodeCache[key] = styleTag;
+    }
+
+    // surround the variable value with css necessities
+    var joinr = ':' + value + ';';
+    var output = '';
+
+    // For each rule on a single selector join them together,
+    // and create some valid css for them
+    $.each(ruleSlctr, function (s, rules) {
+      output += s + ' { ' + rules.join(joinr) + joinr + ' }\n';
+    });
+
+    // Update the style tag contents
+    styleTag.removeChild(styleTag.firstChild);
+    styleTag.appendChild( document.createTextNode(output) );
+  }
+</script>
+</body>
+</html>

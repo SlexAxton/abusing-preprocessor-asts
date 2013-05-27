@@ -1,0 +1,37 @@
+body, html {
+  font-family: 'helvetica neue', helvetica, arial;
+  margin: 0;
+  padding: 0;
+  background-color: var(bg-color);
+}
+
+.container {
+  margin: 20% auto 20px;
+  width: var(app-width);
+  padding: 10px;
+  border-width: 20px;
+  border-style: solid;
+  border-color: var(border-color);
+  border-radius: var(big-border-radius);
+  background-color: #FFF;
+  box-shadow: 0 0 30px rgba(0,0,0,0.3);
+}
+
+.container h1,
+.container h3 {
+  text-align: center;
+}
+
+.container h1 {
+  font-size: 82px;
+  color: var(header-color);
+  text-shadow: 1px 1px 0 #332100;
+  margin: 10px;
+}
+
+.container h3.subheader {
+  font-size: 48px;
+  font-weight: normal;
+  color: var(bg-color);
+  margin: 10px;
+}
