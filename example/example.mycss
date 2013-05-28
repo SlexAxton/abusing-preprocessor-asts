@@ -2,6 +2,7 @@ body, html {
   font-family: 'helvetica neue', helvetica, arial;
   margin: 0;
   padding: 0;
+  height: 100%;
   background-color: var(bg-color);
 }
 

@@ -35,7 +35,7 @@ document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.se
   text-transform: none;
 }
 .reveal h1 {
-  font-size: 3em;
+  font-size: 2.4em;
 }
 .reveal pre {
   font-size: 1em;
@@ -72,6 +72,11 @@ section[t] blockquote {
 }
 .reveal img {
   max-width: none;
+}
+.reveal section img {
+  border: none;
+  box-shadow: none;
+  background-color: transparent;
 }
 .reveal [data-small-code] pre {
   font-size: 0.55em;
@@ -111,28 +116,641 @@ section[t] blockquote {
 
 <section data-markdown>
 <script type="text/template">
-# Hacking and abuse
+# Hacking is
+
+### using something for a reason outside of its designated purpose
 </script>
 </section>
 
 <section data-markdown>
 <script type="text/template">
-## ASTs
+```css
+$blue: #3bbfce;
+$margin: 16px;
 
-```javascript
-function Code () {
-  return {
-    someStuff: { ... }
-  };
+.content-navigation {
+  border-color: $blue;
+  color: darken($blue, 9%);
 }
-```
 
-So why do I need them now?
+.border {
+  padding: $margin / 2;
+  margin: $margin / 2;
+  border-color: $blue;
+}```
+
+### What is there to *"hack"*?
 </script>
 
-<aside class="notes">
-  These are notes
-</aside>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## How does *this*
+
+```css
+$blue: #3bbfce;
+
+.content-navigation {
+  border-color: $blue;
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Turn into *this*?
+
+```css
+.content-navigation {
+  border-color: #3bbfce;
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+# Parsing and Compiling!
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## How does parsing work?
+
+```css
+$blue: #3bbfce;
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Parsing**: on a high level:
+
+### use the syntax rules of the language
+### to be able to figure out each part of
+### the code string, and figure out what type
+### each part (or 'token') is.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## What's what?
+
+![lib/img/tokens.png](lib/img/tokens.png)
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **More specifically:**
+
+### Go through every character and match
+### it against the possible outcomes. When
+### multiple outcomes exist, look ahead to
+### figure out the specific token. Order
+### doesn't matter (yet).
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+```javascript
+var result = [];
+var pos = 0;
+while (pos < str.length) {
+  if (str[pos] === ';') {
+    result.push('semicolon');
+  }
+  // ... a lot more of this
+  pos++;
+}
+return result;
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template" class="scrollcode">
+## More realistically
+
+### Parser Generators :D
+
+```
+class
+  = "." class_:IDENT {
+    return { type: "class_selector", "class": class_ };
+  }
+
+element_name
+  = IDENT / '*'
+
+ident
+  = dash:"-"? nmstart:nmstart nmchars:nmchar* {
+      return dash + nmstart + nmchars.join("");
+    }
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## When you're done
+
+### You need to represent the code
+### as **data** instead of pure text.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## So this:
+
+```css
+$blue: #3bbfce;
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+```css
+$blue: #3bbfce;
+```
+
+## first becomes **this**:
+
+```javascript
+[
+  { type: 'varstart' },
+  { type: 'string', value: 'blue' },
+  { type: 'equals' },
+  { type: 'string', value: '#3bbfce' },
+  { type: 'ruleender' }
+]
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## But then we add structure
+
+```javascript
+{
+  type: 'var-set',
+  left: {
+    type: 'var-name',
+    value: 'blue'
+  },
+  right: {
+    type: 'css-value',
+    value: '#3bbfce'
+  }
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## The styles have structure
+
+```javascript
+{
+  'type': 'stylesheet',
+  'declarations': [
+    {
+      type: 'var-set',
+      left: ...,
+      right: ...
+    },
+    {
+      type: 'declaration',
+      'selectors': ['p', '.stuff'],
+      rules: [
+        { left: 'color', 'value': '#FFF' }
+      ]
+    }
+  ]
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Visually
+
+```
+body {
+  color: black;
+}
+a {
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Becomes:
+
+![lib/img/bottomtree.png](lib/img/bottomtree.png)
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+![lib/img/ast1.png](lib/img/ast1.png)
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## What can we do with an AST?
+
+![lib/img/ast-only.png](lib/img/ast-only.png)
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Read it! Change it! Add to it! Anything!
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## After the *AST phase*
+## there is a **compilation step**
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Compilation:** Part 1
+
+Reduce.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## So when the compiler sees:
+
+```javascript
+{
+  type: 'var-set',
+  name: 'blue',
+  value: '#3bbfce'
+},
+{
+  type: 'rule',
+  name: 'color',
+  value: { type: 'variable', name: 'blue' }
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## It reduces the variables away
+
+```javascript
+// Delete the variable node
+{
+  type: 'rule',
+  name: 'color',
+  value: '#3bbfce'
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Repeat until the tree
+## is a valid **CSS** tree.
+
+## Then...
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Compile back to **text**
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## So our reduction goes from this
+
+```javascript
+{
+  type: 'rule',
+  name: 'color',
+  value: '#3bbfce'
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## to this
+
+```javascript
+color: #3bbfce;
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Recursively.
+# Leaves to trunk.
+#### (*up* the tree, to me :/)
+
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Recap**: text
+
+```
+body {
+  color: black;
+}
+a {
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Recap**: to structured data
+
+```javascript
+[
+  { type: 'declaration', selectors: ['body'], rules: [
+    { property: 'color', value: 'black'}
+  ]},
+  { type: 'declartion', selectors: ['a'], rules: [
+    { property: 'text-decoration', value: 'none' }
+  ], declarations: [{
+    type: 'declaration', name: ':hover', rules: [
+      { property: 'text-decoration', value: 'underline' }
+    ]
+  }]}
+]
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Recap**: to reduced data
+
+```javascript
+[
+  { type: 'declaration', selectors: ['body'], rules: [
+    { property: 'color', value: 'black'}
+  ]},
+  { type: 'declartion', selectors: ['a', 'a:hover'], rules: [
+    { property: 'text-decoration', value: 'none' }
+  ]},
+  { type: 'declaration' selectors: ['a:hover'], rules: [
+      { property: 'text-decoration', value: 'underline' }
+  ]}
+]
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **Recap**: back to text
+
+```
+body {
+  color: black;
+}
+a, a:hover {
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## It takes one type of **text**
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Converts it to a known
+## (but arbitrary) **data** format
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Converts that data into a
+## **different** known
+## (but arbitrary) **data** format
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## And converts that back to **text**
+</script>
+</section>
+
+<section>
+<section data-markdown>
+<script type="text/template">
+## text → data1 → data2 → text
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## text → data1 → data2 → text
+## ↑
+# **the only hard part**
+</script>
+</section>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+# **Abuse** / **Hacking**
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **data1** can be very interesting
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+* count variables
+* change variables
+* move rules around
+* reduce duplicates
+* output statistics
+* add dynamic sections
+* output to other **data2** formats
+* and stuff
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## As long as **data1** is valid
+## when you're done. It comes out
+## valid from the other end.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+```javascript
+function importantize(data) {
+  // If we're a rule, add important
+  if (data.type == 'rule') {
+    data.value = data.value + ' important!';
+  }
+  // Recursively importanize our children
+  data.children.forEach(function(child) {
+    importantize(child);
+  });
+  // Give it back
+  return data;
+}
+
+// do it!
+data1 = importanize(data1);
+```
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+```javascript
+function undo_intern_work(data) {
+  // Recursively go through rules
+  var children = data.children.map(function(child) {
+    // If it's a rule that contains 'important'
+    if (child.type == 'rule' &&
+        child.value.match(/important/)) {
+      // return null
+      return null;
+    }
+    else if (child.children) {
+      // Recurse
+      child = undo_intern_work(child);
+    }
+
+    return child;
+  });
+
+  // remove 'nulled' rules
+  data.children = children.compact();
+
+  // Give it back
+  return data;
+}
+
+// do it!
+data1 = importanize(data1);
+```
+
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## This works in every preprocessor.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## **rework** is **made** do this.
+
+## [github.com/visionmedia/rework](https://github.com/visionmedia/rework)
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Let's go a **little** more
+# "real world"
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Compilation of styles is **fast** *
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## * until you hook it up to a `change` event.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## In a theme builder, you might
+## want a **color picker** and a
+## **size slider** to update the styles
+## in *real time*.
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## How can you change
+## variable values
+## **without recompiling?**
+</script>
+</section>
+
+<section data-markdown>
+<script type="text/template">
+## Why a little extra dirty AST
+## Hacking, of course...
+
+#### (alex this is the demo, dont forget)
+</script>
 </section>
 
 

@@ -38,7 +38,7 @@
       }
 
       // The html that is return for each variable, but with the special types placed in
-      return '<input disabled value="'+Object.keys(value).length+'" style="width:20px;"/>'+
+      return '<input class="var-use-counter" data-varname="'+key+'" value="'+Object.keys(value).length+'" style="width:20px;"/>'+
         '<input class="varname" value="'+key+'" disabled />'+
         '<input class="varvalue" data-varname="'+key+'" '+type+'placeholder="value"><br />';
     }).join("\n");
@@ -69,6 +69,38 @@
       // Use 'varname' as our feature name so each input gets its own
       // style element (best for reflows and fast updates)
       injectStyle(data, varname, [varname], value);
+    }).end().find('.var-use-counter').hover(function(){
+      var $this = $(this);
+      var varname = $this.data('varname');
+      var locations = [];
+
+      // Grab the selectors from the data for this variable
+      var selectors = data[varname].map(function(use){ return use.selector; });
+
+      // Join them into one big selector for fun
+      $(selectors.join(', ')).each(function() {
+        var $this = $(this);
+        var offset = $this.offset();
+
+        // calcluate the position of their top center point
+        locations.push({ top: offset.top, left: offset.left + (($this.outerWidth()/2) - 20)});
+      });
+      var body = $(document.body);
+
+      // Inject a note at each location with the variable name insdie
+      locations.forEach(function(offset) {
+        $('<div class="varshow">' + varname + '</div>').css($.extend({
+          width: '100px',
+          position: 'absolute',
+          backgroundColor: '#FFF',
+          border: '1px solid #333',
+          boxShadow: '0 0 5px #333',
+          padding: '3px'
+        }, offset)).appendTo(body);
+      });
+    }, function(){
+      // Remove the labels on mouse out
+      $('.varshow').remove();
     });
   });
 
