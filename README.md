@@ -4,7 +4,7 @@ A talk for CSSConf, May 28th, 2013
 
 ## Run it
 
-The slides can be static.
+The slides can be static. You can view them at: http://alexsexton.com/talks/abusing-preprocessor-asts
 
 ```sh
 npm install serve -g
