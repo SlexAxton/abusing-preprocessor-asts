@@ -10,7 +10,7 @@ The slides can be static.
 npm install serve -g
 cd abusing-preprocessor-asts
 serve .
-open http://127.0.0.1:1947
+open http://127.0.0.1:3000
 ```
 
 ## The Demo
